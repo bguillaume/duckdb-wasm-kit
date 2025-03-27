@@ -1,8 +1,8 @@
 import { AsyncDuckDB } from "@duckdb/duckdb-wasm";
 import { Table as Arrow } from "apache-arrow";
 
-import { logElapsedTime } from "../util/perf";
-import { DEBUG } from "../init/initializeDuckDb";
+import { DEBUG } from "../init/initializeDuckDb.js";
+import { logElapsedTime } from "../util/perf.js";
 
 /**
  * Execute a SQL query, and return the result as an Apache Arrow table.
@@ -13,6 +13,8 @@ export const runQuery = async (db: AsyncDuckDB, sql: string): Promise<Arrow> => 
   const arrow = await conn.query(sql);
   await conn.close();
 
-  DEBUG && logElapsedTime(`Run query: ${sql}`, start);
+  if (DEBUG) {
+    logElapsedTime(`Run query: ${sql}`, start);
+  }
   return arrow;
 };

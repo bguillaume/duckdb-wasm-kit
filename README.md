@@ -1,7 +1,41 @@
-# duckdb-wasm-kit
+# DuckDB WASM Kit
 
-Hooks and utilities to make it easier to use
-[duckdb-wasm](https://github.com/duckdb/duckdb-wasm) in React apps.
+Utilities to make it easier to use duckdb-wasm in React apps.
+
+## Project Structure
+
+This project follows a clean and organized directory structure:
+
+```
+.
+├── .config/            # All configuration files
+│   ├── build/          # Build configuration
+│   ├── coverage/       # Coverage configuration
+│   ├── docs/           # Documentation config
+│   ├── test/           # Test configuration
+│   └── typescript/     # TypeScript configuration
+├── .reports/           # Generated reports
+│   ├── coverage/       # Coverage reports
+│   └── docs/           # API documentation
+├── .temp/              # Temporary files
+├── scripts/            # Utility scripts
+├── src/                # Source code
+│   ├── files/          # File handling utilities
+│   ├── hooks/          # React hooks
+│   ├── init/           # Initialization logic
+│   └── util/           # Utility functions
+└── tests/              # Test files
+    ├── cypress/        # Cypress integration tests
+    │   ├── fixtures/   # Test fixtures
+    │   ├── integration/# Integration test specs
+    │   └── support/    # Test support files
+    └── jest/           # Unit tests with Jest
+        ├── files/      # File utilities tests
+        ├── hooks/      # React hooks tests
+        ├── init/       # Initialization tests
+        ├── mocks/      # Test mocks
+        └── util/       # Utility tests
+```
 
 ## Install
 
@@ -11,6 +45,38 @@ npm install @duckdb/duckdb-wasm
 ```
 
 Note: duckdb-wasm is a peer dependency, so you can control what version you want to use.
+
+## Test and Coverage
+
+This project uses a comprehensive testing approach with both Jest for unit tests and Cypress for integration tests:
+
+- **Unit Tests**: Located in `tests/jest/` directory, these test individual components and utilities
+- **Integration Tests**: Located in `tests/cypress/integration/` directory, testing complete functionalities
+
+### Code Coverage
+
+Code coverage is set up using NYC (Istanbul) with the following configuration:
+
+- Coverage reports are output to `.reports/coverage/cypress`
+- Temporary files are stored in `.config/test/.nyc_output`
+- Coverage thresholds are set to 70% for branches
+- Reports are generated in HTML, LCOV, text-summary, and Clover formats
+
+### Running Tests and Coverage
+
+The project includes several scripts to manage testing and coverage:
+
+- `debug-coverage.js`: Helps diagnose coverage issues
+- `generate-coverage-report.mjs`: Creates reports after tests run
+- `run-tests-with-coverage.mjs`: Runs tests with coverage collection
+- `cypress-test-server.mjs`: Sets up a test server for Cypress
+
+### Available Tasks
+
+The following tasks can be executed using npm/pnpm:
+
+- `pnpm run lint`: Lint the entire project
+- `npm run lint`: Lint JavaScript, TypeScript, JSX, and TSX files
 
 ## useDuckDb hook
 
@@ -176,7 +242,7 @@ const exportCsv: (db: AsyncDuckDB, tableName: string, filename?: string, delimit
 const exportParquet: (db: AsyncDuckDB, tableName: string, filename?: string, compression?: "uncompressed" | "snappy" | "gzip" | "zstd") => Promise<File>;
 ```
 
-## Parquet in the browser!
+## Parquet in the browser
 
 Parquet is an amazing format for compressing data files (often 90-95% smaller than CSV).
 
@@ -186,7 +252,7 @@ easy format to implement, and it involves multiple compression codecs.
 Luckily, duckdb-wasm now makes it trivial to import/convert/export Parquet files in the browser,
 with zero dependencies! 🎉
 
-## Try it out!
+## Try it out
 
 As a demo of what this library enables, check out [duckbook.ai](https://duckbook.ai).
 
@@ -207,9 +273,10 @@ Found a bug? Please [submit an issue](https://github.com/holdenmatt/duckdb-wasm-
 
 ## Contributors
 
-[Ramon Vermeulen](https://github.com/ramonvermeulen)
+```
 
 ## Changelog
+
 - Jun 5, 2024: Upgrade to duckdb-wasm 1.28.1-dev211.0 (using duckdb 1.0)
 - Mar 5, 2024: Upgrade to duckdb-wasm 1.28.1-dev159.0 and apache-arrow 15.0.0
 - Oct 31, 2023: Upgrade to duckdb-wasm 1.28.0 and apache-arrow 13.0.0
@@ -220,3 +287,4 @@ MIT license.
 
 Feel free to copy/fork code as you like. No need for attribution, but if you
 find this library helpful or build something cool with it, [let me know!](https://twitter.com/holdenmatt/)
+```

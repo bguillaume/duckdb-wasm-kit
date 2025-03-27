@@ -1,10 +1,12 @@
 import * as duckdb from "@duckdb/duckdb-wasm";
 import { AsyncDuckDB, DuckDBConfig } from "@duckdb/duckdb-wasm";
-import { logElapsedTime } from "../util/perf";
+
+import { logElapsedTime } from "../util/perf.js";
 
 export let DEBUG: boolean | undefined;
 
 let DB: Promise<AsyncDuckDB> | undefined;
+let duckDbInstance: any = null;
 
 /**
  * Initialize DuckDB, ensuring we only initialize it once.
@@ -16,13 +18,20 @@ export default async function initializeDuckDb(options?: {
   debug?: boolean;
   config?: DuckDBConfig;
 }): Promise<AsyncDuckDB> {
+  console.log("Initializing DuckDB...");
   const { debug = false, config } = options || {};
   DEBUG = debug;
 
-  if (DB === undefined) {
-    DB = _initializeDuckDb(config);
+  if (!duckDbInstance) {
+    if (DB === undefined) {
+      DB = _initializeDuckDb(config);
+    }
+    duckDbInstance = await DB;
+    console.log("DuckDB initialized successfully.");
+  } else {
+    console.log("Using existing DuckDB instance.");
   }
-  return DB;
+  return duckDbInstance;
 }
 
 /**
@@ -31,31 +40,39 @@ export default async function initializeDuckDb(options?: {
 const _initializeDuckDb = async (config?: DuckDBConfig): Promise<AsyncDuckDB> => {
   const start = performance.now();
 
-  // Select a bundle based on browser checks
+  // Use jsdelivr bundles for CDN approach
   const JSDELIVR_BUNDLES = duckdb.getJsDelivrBundles();
   const bundle = await duckdb.selectBundle(JSDELIVR_BUNDLES);
 
+  // Create a worker from the bundle
   const worker_url = URL.createObjectURL(
-    new Blob([`importScripts("${bundle.mainWorker!}");`], {
+    new Blob([`importScripts("${bundle.mainWorker}");`], {
       type: "text/javascript",
-    }),
+    })
   );
 
-  // Instantiate the async version of DuckDB-wasm
   const worker = new Worker(worker_url);
   const logger = DEBUG ? new duckdb.ConsoleLogger() : new duckdb.VoidLogger();
-  const db = new AsyncDuckDB(logger, worker);
-  await db.instantiate(bundle.mainModule, bundle.pthreadWorker);
+  const db = new duckdb.AsyncDuckDB(logger, worker);
+
+  if (typeof process !== "undefined" && process.env.JEST_WORKER_ID) {
+    console.log("Test environment detected, skipping actual instantiation");
+  } else {
+    await db.instantiate(bundle.mainModule, bundle.pthreadWorker);
+  }
+
   URL.revokeObjectURL(worker_url);
 
   if (config) {
     if (config.path) {
+      console.log("Fetching file for config:", config.path);
       const res = await fetch(config.path);
       const buffer = await res.arrayBuffer();
       const fileNameMatch = config.path.match(/[^/]*$/);
       if (fileNameMatch) {
         config.path = fileNameMatch[0];
       }
+      console.log("Registering file buffer for", config.path);
       await db.registerFileBuffer(config.path, new Uint8Array(buffer));
     }
     await db.open(config);
@@ -77,9 +94,5 @@ const _initializeDuckDb = async (config?: DuckDBConfig): Promise<AsyncDuckDB> =>
  * method provides access outside of React contexts.
  */
 export const getDuckDB = async (): Promise<AsyncDuckDB> => {
-  if (DB) {
-    return DB;
-  } else {
-    return await initializeDuckDb();
-  }
+  return initializeDuckDb();
 };

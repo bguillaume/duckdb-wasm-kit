@@ -1,0 +1,18 @@
+{
+  "entryPoints": [
+    "../src"
+  ],
+  "out": "../docs",
+  "readme": "none",
+  "exclude": [
+    "../README.md",
+    "../src/hooks/useDuckDb.test.ts",
+    "../src/hooks/useDuckDb.*test.ts",
+    "../src/hooks/useDuckDbQuery.test.ts",
+    "../src/hooks/useDuckDbQuery.*test.ts"
+  ],
+  "excludePrivate": true,
+  "excludeProtected": true,
+  "includeVersion": true,
+  "entryPointStrategy": "resolve"
+}

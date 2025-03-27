@@ -3,11 +3,11 @@
  */
 import { AsyncDuckDB } from "@duckdb/duckdb-wasm";
 
-import { runQuery } from "../util/runQuery";
-import { getTempFilename } from "../util/tempfile";
-import { ARROW_MIME_TYPE, arrowToArrayBuffer } from "./arrow";
-import { CSV_MIME_TYPE } from "./csv";
-import { PARQUET_MIME_TYPE } from "./parquet";
+import { runQuery } from "../util/runQuery.js";
+import { getTempFilename } from "../util/tempfile.js";
+import { ARROW_MIME_TYPE, arrowToArrayBuffer } from "./arrow.js";
+import { CSV_MIME_TYPE } from "./csv.js";
+import { PARQUET_MIME_TYPE } from "./parquet.js";
 
 /**
  * Export a table (or view) to an Arrow file with a given filename.

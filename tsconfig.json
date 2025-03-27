@@ -1,20 +1,14 @@
 {
-  "compilerOptions": {
-    "target": "es2016",
-    "lib": ["esnext", "dom"],
-    "skipLibCheck": true,
-    "strict": true,
-    "forceConsistentCasingInFileNames": true,
-    "esModuleInterop": true,
-    "module": "esnext",
-    "moduleResolution": "node",
-    "resolveJsonModule": true,
-    "isolatedModules": true,
-    "jsx": "preserve",
-    "strictNullChecks": true,
-    "declaration": true,
-    "outDir": "./dist"
-  },
-  "include": ["**/*.ts"],
-  "exclude": ["node_modules"]
+  "files": [],
+  "references": [
+    {
+      "path": ".config/typescript/tsconfig.module.json"
+    },
+    {
+      "path": ".config/typescript/tsconfig.test.json"
+    },
+    {
+      "path": ".config/typescript/tsconfig.tools.json"
+    }
+  ]
 }

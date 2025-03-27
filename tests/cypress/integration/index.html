@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>DuckDB WASM Test</title>
+    <script type="importmap">
+      {
+        "imports": {
+          "apache-arrow": "https://esm.sh/apache-arrow@14.0.2",
+          "@duckdb/duckdb-wasm": "https://cdn.jsdelivr.net/npm/@duckdb/duckdb-wasm@1.28.0/dist/duckdb-browser.mjs",
+          "@duckdb/duckdb-wasm/dist/duckdb-mvp.wasm": "https://cdn.jsdelivr.net/npm/@duckdb/duckdb-wasm@1.28.0/dist/duckdb-mvp.wasm",
+          "@duckdb/duckdb-wasm/dist/duckdb-eh.wasm": "https://cdn.jsdelivr.net/npm/@duckdb/duckdb-wasm@1.28.0/dist/duckdb-eh.wasm",
+          "@duckdb/duckdb-wasm/dist/duckdb-browser-mvp.worker.js": "https://cdn.jsdelivr.net/npm/@duckdb/duckdb-wasm@1.28.0/dist/duckdb-browser-mvp.worker.js",
+          "@duckdb/duckdb-wasm/dist/duckdb-browser-eh.worker.js": "https://cdn.jsdelivr.net/npm/@duckdb/duckdb-wasm@1.28.0/dist/duckdb-browser-eh.worker.js"
+        }
+      }
+    </script>
+    <script>
+      // Initialize ready flag for Cypress tests
+      window.__duckdbReady = false;
+      window.module = { exports: {} };
+      window.exports = window.module.exports;
+      window.global = window;
+
+      // Setup code coverage tracking
+      window.__coverage__ = window.__coverage__ || {};
+    </script>
+  </head>
+  <body>
+    <h1>DuckDB WASM Integration Test</h1>
+    <div id="status">Initializing DuckDB...</div>
+
+    <script type="module">
+      import * as duckdb from "@duckdb/duckdb-wasm";
+      import * as arrow from "apache-arrow";
+
+      // Make these available globally
+      window.duckdbWasm = duckdb;
+      window.apacheArrow = arrow;
+      console.log("ES Modules loaded successfully");
+
+      // Mock the require function for CommonJS modules
+      window.require = function (moduleName) {
+        console.log("Mock require called for:", moduleName);
+        if (moduleName === "@duckdb/duckdb-wasm") {
+          return window.duckdbWasm;
+        } else if (moduleName.includes("apache-arrow")) {
+          return window.apacheArrow;
+        } else {
+          console.warn("Unmapped require:", moduleName);
+          return {};
+        }
+      };
+
+      // Add a simplified process.env for Node.js environment checks
+      window.process = {
+        env: {
+          NODE_ENV: "test",
+          COVERAGE: "true",
+        },
+        browser: true,
+      };
+
+      // Function to send coverage data to the server
+      window.sendCoverageData = async function () {
+        if (window.__coverage__) {
+          try {
+            console.log("Sending coverage data...");
+            const response = await fetch("/__coverage__", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(window.__coverage__),
+            });
+
+            if (response.ok) {
+              console.log("Coverage data sent successfully!");
+            } else {
+              console.error("Failed to send coverage data:", await response.text());
+            }
+          } catch (error) {
+            console.error("Error sending coverage data:", error);
+          }
+        } else {
+          console.warn("No coverage data available to send");
+        }
+      };
+
+      // Setup is complete, now add our kit script after a small delay
+      setTimeout(() => {
+        const script = document.createElement("script");
+        // Use instrumented code for coverage - point to the new location in .temp directory
+        script.src = "/.temp/dist-coverage/index.js";
+
+        script.onload = function () {
+          console.log("Kit script loaded successfully");
+
+          // After script loads, grab the exports
+          const duckDbKit = window.module.exports;
+          console.log("Exported module contents:", Object.keys(duckDbKit));
+
+          // Get functions from the kit
+          let initFunc = null;
+          const kit = duckDbKit.default || duckDbKit;
+
+          // Look for initialization function in various places
+          if (typeof duckDbKit.initializeDuckDb === "function") {
+            initFunc = duckDbKit.initializeDuckDb;
+            console.log("Found initializeDuckDb function directly");
+          } else if (typeof kit.initializeDuckDb === "function") {
+            initFunc = kit.initializeDuckDb;
+            console.log("Found initializeDuckDb in kit");
+          } else {
+            console.log("No specific initialization function found, creating one");
+            initFunc = async function () {
+              // Manual initialization based on DuckDB WASM patterns
+              try {
+                const logger = new duckdb.ConsoleLogger();
+                const bundle = await duckdb.selectBundle({
+                  mvp: {
+                    mainModule:
+                      "https://cdn.jsdelivr.net/npm/@duckdb/duckdb-wasm@1.28.0/dist/duckdb-mvp.wasm",
+                    mainWorker:
+                      "https://cdn.jsdelivr.net/npm/@duckdb/duckdb-wasm@1.28.0/dist/duckdb-browser-mvp.worker.js",
+                  },
+                  eh: {
+                    mainModule:
+                      "https://cdn.jsdelivr.net/npm/@duckdb/duckdb-wasm@1.28.0/dist/duckdb-eh.wasm",
+                    mainWorker:
+                      "https://cdn.jsdelivr.net/npm/@duckdb/duckdb-wasm@1.28.0/dist/duckdb-browser-eh.worker.js",
+                  },
+                });
+
+                const worker = new Worker(bundle.mainWorker);
+                const db = new duckdb.AsyncDuckDB(logger, worker);
+                await db.instantiate(bundle.mainModule);
+                await db.open();
+                return db;
+              } catch (err) {
+                console.error("Error in manual initialization:", err);
+                throw err;
+              }
+            };
+          }
+
+          // Add utility functions - either from the kit or manual implementations
+          window.runQuery =
+            kit.runQuery ||
+            async function (db, sql) {
+              const conn = await db.connect();
+              const result = await conn.query(sql);
+              await conn.close();
+              return result;
+            };
+
+          window.tableNames =
+            kit.tableNames ||
+            async function (db) {
+              const conn = await db.connect();
+              const result = await conn.query(
+                "SELECT name FROM sqlite_master WHERE type='table'",
+              );
+              const names = result.toArray().map((row) => row.name);
+              await conn.close();
+              return names;
+            };
+
+          window.insertFile =
+            kit.insertFile ||
+            async function (db, file) {
+              const conn = await db.connect();
+              await conn.insertArrowFromIPCStream(await file.arrayBuffer());
+              await conn.close();
+            };
+
+          // Now actually initialize DuckDB
+          console.log("Attempting to initialize DuckDB...");
+          initFunc()
+            .then((instance) => {
+              window.duckdbInstance = instance;
+              window.__duckdbReady = true;
+              document.getElementById("status").textContent =
+                "DuckDB initialized successfully!";
+              console.log("DuckDB initialized successfully");
+
+              // Send initial coverage data after DuckDB is initialized
+              setTimeout(() => window.sendCoverageData(), 1000);
+            })
+            .catch((err) => {
+              console.error("Failed to initialize DuckDB:", err);
+              document.getElementById("status").textContent = `Error: ${err.message}`;
+            });
+        };
+
+        script.onerror = function (error) {
+          console.error("Failed to load kit script:", error);
+          document.getElementById("status").textContent = "Failed to load DuckDB kit";
+        };
+
+        document.head.appendChild(script);
+      }, 500);
+    </script>
+
+    <!-- Send coverage data when tests complete -->
+    <script>
+      window.addEventListener("beforeunload", function () {
+        // Try to send coverage data before the page unloads
+        if (window.sendCoverageData) {
+          window.sendCoverageData();
+        }
+      });
+    </script>
+  </body>
+</html>

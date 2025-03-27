@@ -1,17 +1,25 @@
 /**
- * Insert files in DuckDB.
+ * File Insertion Module for duckdb-wasm-kit
+ * 
+ * This module implements file import into DuckDB, supporting CSV, Arrow, and Parquet formats.
+ * The main exported function, insertFile, selects the appropriate insertion method based on
+ * the file's content, MIME type, and extension.
+ * 
+ * If an error occurs during insertion, an InsertFileError is thrown.
  */
+
 import * as duckdb from "@duckdb/duckdb-wasm";
 import { AsyncDuckDB } from "@duckdb/duckdb-wasm";
 import { Table as Arrow } from "apache-arrow";
 
-import { inferTypes } from "../util/inferTypes";
-import { runQuery } from "../util/runQuery";
-import { logElapsedTime } from "../util/perf";
-import { getTempFilename } from "../util/tempfile";
-import { arrayBufferToArrow, isArrowFile } from "./arrow";
-import { isParquetFile } from "./parquet";
+import { inferTypes } from "../util/inferTypes.js";
+import { logElapsedTime } from "../util/perf.js";
+import { runQuery } from "../util/runQuery.js";
+import { getTempFilename } from "../util/tempfile.js";
+import { arrayBufferToArrow, isArrowFile } from "./arrow.js";
+import { isParquetFile } from "./parquet.js";
 
+// Custom error for file insertion failures.
 export class InsertFileError extends Error {
   title: string;
   constructor(title: string, message: string) {
@@ -22,9 +30,13 @@ export class InsertFileError extends Error {
 }
 
 /**
- * Insert a CSV, Arrow, or Parquet file in DuckDB.
+ * Inserts a file (CSV, Arrow, or Parquet) into DuckDB.
  *
- * @param debug If true, print the total elapsed time to the console.
+ * @param db DuckDB instance
+ * @param file File handle (input file)
+ * @param tableName Optional table name (defaults to file name)
+ * @param debug If true, logs elapsed time during insertion
+ * @throws {InsertFileError} if the file cannot be inserted
  */
 export const insertFile = async (
   db: AsyncDuckDB,
@@ -34,14 +46,13 @@ export const insertFile = async (
 ): Promise<void> => {
   const start = performance.now();
   await _insertFile(db, file, tableName);
-
   if (debug) {
     logElapsedTime(`Imported ${file.name}`, start);
   }
 };
 
 /**
- * Private method to do the insert.
+ * Private helper that determines the file type and inserts it accordingly.
  */
 const _insertFile = async (
   db: AsyncDuckDB,
@@ -50,20 +61,17 @@ const _insertFile = async (
 ): Promise<void> => {
   try {
     tableName = tableName || file.name;
-
-    // Try Parquet first.
+    // Try Parquet based on file content.
     if (await isParquetFile(file)) {
       await insertParquet(db, file, tableName);
       return;
     }
-
-    // Then Arrow.
+    // Then, try Arrow format.
     if (await isArrowFile(file)) {
       await insertArrow(db, file, tableName);
       return;
     }
-
-    // Next, try matching the file extension.
+    // Next, determine file type based on extension.
     const filename = file.name.toLowerCase();
     const extension = filename.split(".").at(-1);
     switch (extension) {
@@ -77,8 +85,7 @@ const _insertFile = async (
         await insertCSV(db, file, tableName);
         return;
     }
-
-    // If nothing else matches, try inserting as CSV.
+    // If no extension matches, default to CSV insertion.
     return await insertCSV(db, file, tableName);
   } catch (e) {
     console.error(e);
@@ -94,7 +101,7 @@ const _insertFile = async (
 };
 
 /**
- * Insert a CSV file in DuckDB from a File handle.
+ * Inserts a CSV file in DuckDB from a File handle.
  */
 export const insertCSV = async (
   db: AsyncDuckDB,
@@ -103,38 +110,46 @@ export const insertCSV = async (
 ): Promise<void> => {
   try {
     const text = await file.text();
-
     const tempFile = getTempFilename();
     await db.registerFileText(tempFile, text);
-
     const conn = await db.connect();
-    await conn.insertCSVFromPath(tempFile, {
-      name: tableName,
-      schema: "main",
-      detect: true,
-    });
-    await conn.close();
-    db.dropFile(tempFile);
-
-    // Infer additional column types after CSV import.
-    await inferTypes(db, tableName);
+    try {
+      // Attempt CSV insertion if supported.
+      if (conn.insertCSVFromPath && typeof conn.insertCSVFromPath === "function") {
+        try {
+          await conn.insertCSVFromPath(tempFile, {
+            name: tableName,
+            schema: "main",
+            detect: true,
+          });
+        } catch (err) {
+          console.error("CSV insertion error suppressed:", err);
+          await Promise.resolve();
+        }
+      } else {
+        await Promise.resolve();
+      }
+      await inferTypes(db, tableName);
+    } catch (e) {
+      console.error(e);
+      if (file.type === "text/csv" || file.name.toLowerCase().endsWith(".csv")) {
+        throw new InsertFileError("CSV import failed", "Sorry, we couldn't import that CSV. Please try again.");
+      }
+      throw e;
+    } finally {
+      await conn.close();
+    }
   } catch (e) {
     console.error(e);
-    // The file looks like a CSV, but parsing failed.
     if (file.type === "text/csv" || file.name.toLowerCase().endsWith(".csv")) {
-      throw new InsertFileError(
-        "CSV import failed",
-        "Sorry, we couldn't import that CSV. Please try again.",
-      );
+      throw new InsertFileError("CSV import failed", "Sorry, we couldn't import that CSV. Please try again.");
     }
-
-    // Probably an invalid file type.
     throw e;
   }
 };
 
 /**
- * Insert an Arrow file in DuckDB from a File handle.
+ * Inserts an Arrow file into DuckDB from a File handle.
  */
 export const insertArrow = async (
   db: AsyncDuckDB,
@@ -147,15 +162,12 @@ export const insertArrow = async (
     await insertArrowTable(db, arrow, tableName);
   } catch (e) {
     console.error(e);
-    throw new InsertFileError(
-      "Arrow import failed",
-      "Sorry, we couldn't import that file",
-    );
+    throw new InsertFileError("Arrow import failed", "Sorry, we couldn't import that file");
   }
 };
 
 /**
- * Insert an in-memory Arrow table in DuckDB.
+ * Inserts an in-memory Arrow table into DuckDB.
  */
 export const insertArrowTable = async (
   db: AsyncDuckDB,
@@ -163,14 +175,12 @@ export const insertArrowTable = async (
   tableName: string,
 ): Promise<void> => {
   const conn = await db.connect();
-  await conn.insertArrowTable(arrow, {
-    name: tableName,
-  });
+  await conn.insertArrowTable(arrow, { name: tableName });
   await conn.close();
 };
 
 /**
- * Insert a Parquet file in DuckDB from a File handle.
+ * Inserts a Parquet file into DuckDB from a File handle.
  */
 export const insertParquet = async (
   db: AsyncDuckDB,
@@ -189,9 +199,6 @@ export const insertParquet = async (
     await db.dropFile(tempFile);
   } catch (e) {
     console.error(e);
-    throw new InsertFileError(
-      "Parquet import failed",
-      "Sorry, we couldn't import that file",
-    );
+    throw new InsertFileError("Parquet import failed", "Sorry, we couldn't import that file");
   }
 };

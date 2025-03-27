@@ -1,45 +1,110 @@
 {
   "name": "duckdb-wasm-kit",
-  "version": "0.1.38",
+  "version": "0.1.39",
   "description": "Utilities to make it easier to use duckdb-wasm in React apps.",
   "author": "Matt Holden",
+  "contributors": [
+    "Bastien GUILLAUME"
+  ],
   "license": "MIT",
-  "homepage": "https://github.com/holdenmatt/duckdb-wasm-kit",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/holdenmatt/duckdb-wasm-kit"
-  },
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "module": "dist/index.js",
+  "type": "module",
+  "homepage": "",
   "scripts": {
-    "build": "rm -rf dist && tsup --dts"
+    "build": "tsup --config .config/build/tsup.config.ts",
+    "test:unit": "pnpm test:jest",
+    "test:e2e": "pnpm test:cypress:run",
+    "test:cypress:serve": "NODE_ENV=test node scripts/cypress-test-server.mjs",
+    "test:cypress:run": "cypress run --config-file .config/test/cypress.config.js",
+    "test:cypress:open": "cypress open --config-file .config/test/cypress.config.js",
+    "test:cypress:coverage": "start-server-and-test test:cypress:serve http://127.0.0.1:5022/__health test:cypress:run",
+    "test:cypress:run:coverage": "pnpm test:cypress:coverage && pnpm test:merge-coverage",
+    "test:jest": "jest --config .config/test/jest.config.ts",
+    "test:jest:coverage": "jest --config .config/test/jest.config.ts --coverage",
+    "test:jest:watch": "jest --config .config/test/jest.config.ts --watch",
+    "test:unit:coverage": "jest --config .config/test/jest.config.ts --coverage",
+    "test:unit:watch": "jest --config .config/test/jest.config.ts --watch",
+    "test:coverage": "pnpm test:unit:coverage && pnpm test:cypress:coverage && pnpm test:merge-coverage",
+    "test:merge-coverage": "nyc merge .reports/coverage .nyc_output/out.json && nyc report --nycrc-path .config/coverage/nyc.config.js --reporter=html --reporter=lcov --reporter=text --report-dir=.reports/coverage/merged",
+    "coverage:debug": "node scripts/debug-coverage.js",
+    "coverage:reset": "rm -rf .nyc_output && mkdir -p .nyc_output && echo '{}' > .nyc_output/out.json",
+    "coverage:verify": "pnpm test:cypress:coverage && pnpm coverage:debug",
+    "coverage:fix": "NODE_ENV=test COVERAGE_DEBUG=true pnpm test:cypress:coverage && pnpm test:merge-coverage",
+    "coverage:enhanced": "NODE_ENV=test node scripts/run-tests-with-coverage.mjs",
+    "coverage:full": "pnpm test:unit:coverage && pnpm coverage:enhanced && pnpm test:merge-coverage",
+    "coverage:report": "node scripts/generate-coverage-report.mjs",
+    "lint": "eslint . --ext .js,.jsx,.mjs,.ts,.tsx",
+    "lint:fix": "pnpm lint --fix",
+    "tsc": "tsc --project ./.config/typescript/tsconfig.module.json",
+    "tsc:test": "tsc --project ./.config/typescript/tsconfig.test.json",
+    "tsc:tools": "tsc --project ./.config/typescript/tsconfig.tools.json",
+    "tsc:check": "tsc --noEmit --project ./.config/typescript/tsconfig.module.json",
+    "tsc:check:test": "tsc --noEmit --project ./.config/typescript/tsconfig.test.json",
+    "tsc:clean": "cd .config/typescript && tsc --build --clean",
+    "tsc:build": "cd .config/typescript && tsc --build",
+    "check-licenses": "license-checker --summary",
+    "docs": "typedoc --tsconfig .config/typescript/tsconfig.base.json --options .config/docs/typedoc.json",
+    "docs:serve": "npx serve .reports/docs",
+    "docs:verbose": "typedoc --tsconfig .config/typescript/tsconfig.base.json --options .config/docs/typedoc.json --logLevel Verbose",
+    "docs:deploy": "gh-pages -d .reports/docs",
+    "predocs:deploy": "pnpm docs",
+    "prepare": "exit 0",
+    "test": "jest --config ./.config/test/jest.config.ts",
+    "build:coverage": "vite build --config .config/coverage/vite.config.coverage.js"
   },
-  "tsup": {
-    "entry": [
-      "src/index.ts"
-    ],
-    "sourcemap": true,
-    "clean": true
-  },
-  "dependencies": {
-    "react-async-hook": "^4.0.0"
-  },
+  "tsconfig": ".config/typescript/tsconfig.json",
   "devDependencies": {
-    "@duckdb/duckdb-wasm": "^1.28.0",
-    "@types/react": "^18.3.2",
-    "apache-arrow": "^15.0.0",
-    "eslint": "^9.3.0",
-    "eslint-config-next": "^14.2.3",
-    "eslint-config-prettier": "^9.1.0",
-    "eslint-plugin-simple-import-sort": "^12.1.0",
-    "prettier": "^3.2.5",
-    "tsup": "^8.0.2",
-    "typescript": "^5.4.5"
+    "@babel/core": "^7.26.10",
+    "@babel/plugin-syntax-typescript": "^7.25.9",
+    "@babel/preset-env": "^7.26.9",
+    "@babel/preset-react": "^7.26.3",
+    "@babel/preset-typescript": "^7.27.0",
+    "@cypress/code-coverage": "^3.14.0",
+    "@duckdb/duckdb-wasm": "^1.29.0",
+    "@eslint/js": "^9.24.0",
+    "@jest/globals": "^29.7.0",
+    "@jest/types": "^29.6.3",
+    "@rollup/pluginutils": "^5.1.4",
+    "@testing-library/jest-dom": "^6.6.3",
+    "@types/node": "^22.14.0",
+    "@types/react": "^19.1.0",
+    "@types/react-dom": "^19.1.2",
+    "@vitejs/plugin-react": "4.3.4",
+    "apache-arrow": "17.0.0",
+    "babel-plugin-istanbul": "^7.0.0",
+    "cypress": "^14.3.0",
+    "eslint": "^9.24.0",
+    "eslint-plugin-cypress": "^4.2.1",
+    "eslint-plugin-import": "^2.31.0",
+    "eslint-plugin-jest": "^28.11.0",
+    "eslint-plugin-prefer-arrow": "^1.2.3",
+    "eslint-plugin-react": "^7.37.5",
+    "eslint-plugin-react-hooks": "^5.2.0",
+    "gh-pages": "^6.1.0",
+    "globals": "^16.0.0",
+    "husky": "^9.1.7",
+    "istanbul-lib-instrument": "^6.0.3",
+    "jest": "^29.7.0",
+    "license-checker": "^25.0.1",
+    "node-fetch": "^3.3.2",
+    "nyc": "^17.1.0",
+    "prettier": "3.5.3",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "start-server-and-test": "^2.0.11",
+    "ts-jest": "^29.3.1",
+    "tsup": "8.4.0",
+    "typedoc": "^0.28.2",
+    "typescript": "^5.8.3",
+    "typescript-eslint": "^8.29.1",
+    "vite": "6.2.5"
   },
   "peerDependencies": {
     "@duckdb/duckdb-wasm": "*",
-    "apache-arrow": ">=15.0.0",
-    "react": "^16.8.0 || ^17.0.0 || ^18.0.0"
+    "apache-arrow": ">=17.0.0 and <19.0.0",
+    "react": "^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0"
   },
   "keywords": [
     "duckdb",
@@ -53,5 +118,10 @@
   ],
   "prettier": {
     "printWidth": 90
+  },
+  "pnpm": {
+    "overrides": {
+      "apache-arrow": "17.0.0"
+    }
   }
 }

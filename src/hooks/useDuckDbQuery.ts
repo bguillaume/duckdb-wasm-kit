@@ -1,8 +1,8 @@
 import { Table as Arrow } from "apache-arrow";
-import { useAsync } from "react-async-hook";
 
-import { runQuery } from "../util/runQuery";
-import { useDuckDb } from "./useDuckDb";
+import { runQuery } from "../util/runQuery.js";
+import useAsync from "./useAsync.js";
+import { useDuckDb } from "./useDuckDb.js";
 
 /**
  * Execute a SQL query and return the result as Arrow.
@@ -20,17 +20,9 @@ export const useDuckDbQuery = (
 } => {
   const { db } = useDuckDb();
 
-  const {
-    result: arrow,
-    loading,
-    error,
-  } = useAsync(async () => {
-    if (!db || !sql) {
-      return undefined;
-    }
-
-    const arrow = await runQuery(db, sql);
-    return arrow;
+  const { data: arrow, loading, error } = useAsync(async () => {
+    if (!db || !sql) return undefined;
+    return await runQuery(db, sql);
   }, [db, sql]);
 
   return { arrow, loading, error };

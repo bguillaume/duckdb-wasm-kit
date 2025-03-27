@@ -1,3 +1,74 @@
-dist/
+# Node and package manager files
 node_modules/
+package-lock.json
+.pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Build output
+dist/
+dist-coverage/
+.temp/dist-coverage/
+*.tsbuildinfo
+build/
+!.config/build/
+
+# Coverage and reports
+coverage/
+.reports/coverage/
+.temp/coverage-entry.ts
+.temp/.nyc_output/
+*.lcov
+.nyc_output/
+!.config/coverage/
+
+# Temporary files
+.temp/
+# Keep the cypress directory structure in .temp but ignore generated artifacts
+.temp/cypress/screenshots/
+.temp/cypress/downloads/
+.temp/cypress/videos/
+
+# Logs
+*.log
+debug.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Environment and local configurations
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+*.local
+
+# IDE settings and OS files
+.vscode/
+.idea/
 .DS_Store
+Thumbs.db
+*.swp
+*.swo
+
+# Miscellaneous
+.cache/
+
+# Cypress - old location (can be removed after migration is confirmed)
+cypress/screenshots/
+cypress/videos/
+cypress/downloads/
+
+# TypeScript
+.tscache/
+
+# Documentation
+/docs
+.reports/docs/
+/documentation
+/.docusaurus
+
+# TypeDoc
+/api-docs

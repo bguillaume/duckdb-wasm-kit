@@ -1,0 +1,2 @@
+# Quick checks that run on every commit
+pnpm lint:fix && pnpm lint && pnpm tsc

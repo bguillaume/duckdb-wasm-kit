@@ -1,0 +1,47 @@
+git name: CI Pipeline
+
+on:
+  #push:
+  # branches: [ main ]
+  #pull_request:
+  #  branches: [ main, dev ]
+  #pull_request_target:
+  #  branches: [ dev ]
+
+  workflow_dispatch:
+
+jobs:
+  build-test:
+    # Only run tests if:
+    # 1. PR to dev branch
+    # 2. PR from dev to main
+    # 3. Push to main
+    if: |
+      (github.event_name == 'pull_request' && github.base_ref == 'dev') ||
+      (github.event_name == 'pull_request' && github.base_ref == 'main' && github.head_ref == 'dev') ||
+      (github.event_name == 'push' && github.ref == 'refs/heads/main')
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [16, 18, 20]
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install
+      
+      - name: Build project
+        run: pnpm build
+
+      - name: Run tests with coverage
+        run: pnpm test --coverage
+
+      - name: Check licenses
+        run: pnpm run check-licenses

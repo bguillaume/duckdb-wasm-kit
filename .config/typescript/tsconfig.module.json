@@ -1,0 +1,24 @@
+/**
+ * TypeScript configuration for source code (src directory)
+ * This configuration is used for:
+ * - Building the library's source files
+ * - Type checking during development
+ * - Generating declaration files
+ * 
+ * This config extends the base config and adds specific settings for ES modules.
+ */
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "composite": true,
+    "declaration": true,
+    "declarationMap": true,
+    "outDir": "../../dist",
+    "module": "ESNext",
+    "target": "ES2020"
+  },
+  "include": [
+    "../../src",
+    "./tsconfig.module.json"
+  ]
+}

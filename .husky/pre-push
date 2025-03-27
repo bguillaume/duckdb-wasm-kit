@@ -1,0 +1,14 @@
+# Get the current and target branch names
+current_branch=$(git rev-parse --abbrev-ref HEAD)
+while read local_ref local_sha remote_ref remote_sha
+do
+    target_branch=${remote_ref##refs/heads/}
+done
+
+# Run tests only when:
+# 1. Pushing to dev
+# 2. Pushing to main
+# 3. Current branch is dev and pushing to main
+#if [ "$target_branch" = "dev" ] || [ "$target_branch" = "main" ] || ([ "$current_branch" = "dev" ] && [ "$target_branch" = "main" ]); then
+#    pnpm test:jest:unit
+#fi

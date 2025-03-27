@@ -1,0 +1,35 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "composite": true,
+    "types": [
+      "jest",
+      "cypress",
+      "node"
+    ],
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "jsx": "react-jsx",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "noEmit": true,
+    // "allowExtensionlessFiles": true,
+    "allowArbitraryExtensions": true,
+    "strict": true,
+    "allowJs": true,
+    "checkJs": false,
+    "paths": {
+      "@/*": [
+        "../../src/*"
+      ]
+    },
+    "baseUrl": "../../",
+    "resolveJsonModule": true
+  },
+  "include": [
+    "../../src/**/*",
+    "../../tests/**/*",
+    "../test/**/*.ts"
+  ]
+}

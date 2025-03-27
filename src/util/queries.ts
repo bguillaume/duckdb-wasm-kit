@@ -3,7 +3,7 @@
  */
 import { AsyncDuckDB } from "@duckdb/duckdb-wasm";
 
-import { runQuery } from "./runQuery";
+import { runQuery } from "./runQuery.js";
 
 export enum TableType {
   Table = "Table",
